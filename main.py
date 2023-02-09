@@ -143,11 +143,7 @@ if __name__ == "__main__":
             loss.backward()
             optimizer.step()
             optimizer.clear_grad()
-            # break
-            # compute loss
-            # soft_dice_loss, bce_loss = self.loss_fn(output, target)
-            # running_dice_loss += soft_dice_loss.item()
-            # running_bce_loss += bce_loss.item()
+            
         epoch_dice_loss = running_dice_loss / len(test_loader)
         epoch_bce_loss = running_bce_loss / len(test_loader)
         epoch_acc = running_acc / len(test_loader)

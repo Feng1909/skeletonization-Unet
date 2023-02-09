@@ -10,7 +10,6 @@ class DiceLoss(nn.Layer):
         self.smooth = smooth
 
     def forward(self, preds, targets):
-        # outputs = torch.sigmoid(preds.squeeze())
 
         numerator = 2 * paddle.sum(preds * targets) + self.smooth
         denominator = paddle.sum(preds ** 2) + paddle.sum(targets ** 2) + self.smooth
@@ -37,7 +36,7 @@ class WeightedFocalLoss(nn.Layer):
 
         if math.isnan(F_loss) or math.isinf(F_loss):
             F_loss = paddle.zeros(1).to(preds.device)
-
+            
         return F_loss
 
 class Loss(nn.Layer):
@@ -52,9 +51,28 @@ class Loss(nn.Layer):
         self.S_focal = []
         self.sigmoid = paddle.nn.Sigmoid()
 
-    def forward(self, preds, targets):
-        preds = self.sigmoid(preds.squeeze())
-        dice_loss = self.dice_loss(preds, targets) * self.w_dice
-        focal_loss = self.focal_loss(preds, targets) * self.w_focal
+    def forward(self, pred, pred_128, pred_64, pred_32, target, target_128, target_64, target_32):
+        pred = self.sigmoid(pred.squeeze())
+        pred_128 = self.sigmoid(pred_128.squeeze())
+        pred_64 = self.sigmoid(pred_64.squeeze())
+        pred_32 = self.sigmoid(pred_32.squeeze())
+        
+        soft_dice_loss = self.dice_loss(pred, target) * self.w_dice
+        bce_loss = self.focal_loss(pred, target) * self.w_focal
+        
+        soft_dice_loss_128 = self.dice_loss(pred_128, target_128) * self.w_dice
+        bce_loss_128  = self.focal_loss(pred_128, target_128) * self.w_focal
+        
+        soft_dice_loss_64 = self.dice_loss(pred_64, target_64) * self.w_dice
+        bce_loss_64 = self.focal_loss(pred_64, target_64) * self.w_focal
+        
+        soft_dice_loss_32 = self.dice_loss(pred_32, target_32) * self.w_dice
+        bce_loss_32 = self.focal_loss(pred_32, target_32) * self.w_focal
 
-        return dice_loss, focal_loss
+        loss = 0.5*(soft_dice_loss+bce_loss) \
+                + 0.3*(soft_dice_loss_128+bce_loss_128) \
+                + 0.2*(soft_dice_loss_64+bce_loss_64) \
+                + 0.1*(soft_dice_loss_32+bce_loss_32)
+        # print(loss)
+
+        return loss
